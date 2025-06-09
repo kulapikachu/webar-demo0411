@@ -1,61 +1,41 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>水果AR互動</title>
-    <script src="libs/mindar/mindar-image-three.prod.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/examples/js/loaders/GLTFLoader.js"></script>
-    <style>
-      body { margin: 0; overflow: hidden; }
-      canvas { width: 100%; height: 100% }
-    </style>
-  </head>
-  <body>
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const start = async () => {
-          const mindarThree = new window.MINDAR.IMAGE.MindARThree({
-            container: document.body,
-            imageTargetSrc: "./mindar/appie.mind", // 可替換成不同水果
-          });
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+<body style="margin:0;overflow:hidden;">
+<script>
+  document.addEventListener("DOMContentLoaded", async () => {
+    // 可選用 enumerateDevices 選擇特定 camera
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const backCam = devices.find(d => d.kind === 'videoinput' && /back|rear/i.test(d.label));
+    const envId = backCam?.deviceId;
 
-          const { renderer, scene, camera } = mindarThree;
-
-          const anchor = mindarThree.addAnchor(0); // 第一個圖卡
-
-          const loader = new THREE.GLTFLoader();
-          let fruitMesh;
-
-          loader.load('./assets/apple.glb', (gltf) => {
-            fruitMesh = gltf.scene;
-            fruitMesh.scale.set(0.5, 0.5, 0.5);
-            anchor.group.add(fruitMesh);
-          });
-
-          anchor.onTargetFound = () => {
-            console.log("圖卡辨識成功");
-          };
-
-          anchor.onTargetLost = () => {
-            console.log("圖卡遺失");
-          };
-
-          // 簡單切水果效果（點擊消失）
-          window.addEventListener("click", () => {
-            if (fruitMesh) {
-              fruitMesh.visible = false;
-              alert("水果被切了 🍉");
-            }
-          });
-
-          await mindarThree.start();
-          renderer.setAnimationLoop(() => {
-            renderer.render(scene, camera);
-          });
-        };
-
-        start();
-      });
-    </script>
-  </body>
+    const mindarThree = new window.MINDAR.IMAGE.MindARThree({
+      container: document.body,
+      imageTargetSrc: "./mindar/appie.mind",
+      environmentDeviceId: envId,
+      video: true  // 不指定 facingMode
+    });
+    const { renderer, scene, camera } = mindarThree;
+    const anchor = mindarThree.addAnchor(0);
+    const loader = new THREE.GLTFLoader();
+    
+    let fruitMesh;
+    loader.load('./assets/apple.glb', gltf => {
+      fruitMesh = gltf.scene;
+      fruitMesh.scale.set(0.5,0.5,0.5);
+      anchor.group.add(fruitMesh);
+    });
+    anchor.onTargetFound = () => console.log("辨識成功");
+    anchor.onTargetLost = () => console.log("遺失圖卡");
+    await mindarThree.start();  // 呼叫攝影機
+    renderer.setAnimationLoop(() => renderer.render(scene, camera));
+  });
+</script>
+</body>
 </html>
